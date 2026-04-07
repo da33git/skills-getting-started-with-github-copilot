@@ -84,13 +84,30 @@ def test_remove_participant():
     assert email not in activities[activity]["participants"]
 
 
-def test_remove_nonexistent_participant_returns_404():
-    # Arrange: Select an activity and a non-existent email
+def test_signup_when_full_returns_400():
+    # Arrange: Fill an activity to its maximum capacity
+    activity = "Basketball Team"
+    max_participants = activities[activity]["max_participants"]
+    
+    # Fill the activity
+    for i in range(max_participants):
+        email = f"fulltest{i}@mergington.edu"
+        response = client.post(
+            f"/activities/{activity}/signup",
+            params={"email": email},
+        )
+        assert response.status_code == 200
 
-    # Act: Attempt to remove non-existent participant
-    response = client.delete(
-        "/activities/Art Club/participants/noone@mergington.edu"
+    # Act: Try to signup one more participant
+    extra_email = "extra@mergington.edu"
+    response = client.post(
+        f"/activities/{activity}/signup",
+        params={"email": extra_email},
     )
 
-    # Assert: Check that it returns 404
-    assert response.status_code == 404
+    # Assert: Should return 400 because activity is full
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Activity is full"
+
+    # Cleanup: Clear the participants
+    activities[activity]["participants"].clear()
